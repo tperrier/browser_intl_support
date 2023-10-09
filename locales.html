@@ -7,7 +7,8 @@
 <script type="text/javascript">
 
 var displayLocales = ["ar", "en", "pa", "sw-KE", "ja"];
-var headerRow = ["", "Name", "Date", "Number", "Native", "English", "Supports", "Supported By"].concat(displayLocales).concat(["Date Long", "Date Short", "Number"]);
+var headerRow = ["", "Native Display", "English Display", "Supported Count", "Supported By Count"]
+    .concat(displayLocales).concat(["Date Long", "Date Short", "Number"]);
 var dateToShow = new Date();
 
 var getFormatters = function(displayLocale, languageFmt) {
@@ -29,33 +30,13 @@ var makeListRow = function(rowLocale, languageFmt) {
     var row = $.tag("tr")
     var fmt = getFormatters(rowLocale, languageFmt)
 
-    var isSupported = {
-        name:  new Set(Intl.DisplayNames.supportedLocalesOf([rowLocale])).size == 1,
-        date:  new Set(Intl.DateTimeFormat.supportedLocalesOf([rowLocale])).size == 1,
-        number: new Set(Intl.NumberFormat.supportedLocalesOf([rowLocale])).size == 1
-    }
-
+    var isSupported = new Set(Intl.DisplayNames.supportedLocalesOf([rowLocale])).size == 1;
 
     // locale code
     var cell = $.ele("<td class='td-head'>"+rowLocale+"</td>");
-    if (!isSupported["name"]) {
+    if (!isSupported) {
         cell.classList.add("warn");
     }
-    row.appendChild(cell);
-
-    // DisplayName isSupported
-    cell = $.tag("td");
-    cell.innerHTML = isSupported["name"] ? "✔️" : "⛔"
-    row.appendChild(cell);
-
-    // DateTimeFormat isSupported
-    cell = $.tag("td");
-    cell.innerHTML = isSupported["date"] ? "✔️" : "⛔"
-    row.appendChild(cell);
-
-    // NumberFormat isSupported
-    cell = $.tag("td");
-    cell.innerHTML = isSupported["number"] ? "✔️" : "⛔"
     row.appendChild(cell);
 
     // Native name
@@ -78,29 +59,29 @@ var makeListRow = function(rowLocale, languageFmt) {
 
     // Count of languages that can be displaed in this locale
     cell = $.tag("td");
-    if (isSupported["name"]) {
-        cell.innerHTML = (new Array(...languageFmt.keys())).filter(function(i) { return fmt["language"](i) !== undefined}).length;
+    if (isSupported) {
+        cell.innerHTML = (new Array(...languageFmt.keys()))
+            .filter(function(lang) { return fmt["language"](lang) !== undefined}).length;
     }
     row.appendChild(cell);
 
     // Count how many languages support |rowLocale| (Supported By)
     cell = $.tag("td");
-    var supportedLocales =(new Array(...languageFmt.entries())).filter(function ([l, fmt]) {
-        return new Set(Intl.DisplayNames.supportedLocalesOf([l])).size == 1 &&
+    var supportedLocales =(new Array(...languageFmt.entries())).filter(function ([lang, fmt]) {
+        return new Set(Intl.DisplayNames.supportedLocalesOf([lang])).size == 1 &&
                 fmt(rowLocale) !== undefined;
         });
     cell.innerHTML = supportedLocales.length !== 0 ? supportedLocales.length : "";
     row.appendChild(cell);
 
 
-    if (isSupported["name"]) {
+    if (isSupported) {
         for (locale of displayLocales) {
             cell = $.tag("td");
             cell.innerHTML = fmt["language"](locale);
 
             if (cell.innerHTML === "undefined"){
                 cell.classList.add('warn');
-                // cell.innerHTML = rowLocale;
             }
             row.appendChild(cell);
         }
@@ -108,7 +89,7 @@ var makeListRow = function(rowLocale, languageFmt) {
         row.append(...$.html("<td colspan='"+(displayLocales.length + 3)+"'></td>"));
     }
 
-    if (isSupported["date"]) {
+    if (isSupported) {
         cell = $.tag("td")
         cell.innerHTML = fmt["dateFull"](dateToShow)
         row.appendChild(cell)
@@ -119,7 +100,7 @@ var makeListRow = function(rowLocale, languageFmt) {
 
     }
 
-    if (isSupported["number"]){
+    if (isSupported){
         cell = $.tag("td");
         cell.innerHTML = fmt["number"](1234567.89);
         row.appendChild(cell);
@@ -165,7 +146,7 @@ window.onload = function() {
 <body>
 
 <div id="summary">
-   There are <span id="totalLocales"></span> locales and <span id="supportedLocales"></span> are supported.
+   We check <span id="totalLocales"></span> locales and <span id="supportedLocales"></span> are supported by this browser.
 </div>
 
 <table id="locale-table"> </table>
