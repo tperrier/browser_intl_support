@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<script type="text/javascript" src="locales.js"></script>
+
+<script type="text/javascript">
+
+window.onload = function() {
+
+    var makeTable = function(locales, columns) {
+        var table = document.getElementById("locale-table");
+        var supportedLocales = new Set(Intl.DisplayNames.supportedLocalesOf(locales));
+
+        // Make columns to Intl.DisplayNames map
+        columns = new Map(columns.map(function(i) {
+                return [i, new Intl.DisplayNames(i, {type:"language", fallback:"none", languageDisplay: "standard"})];
+            }
+        ));
+
+
+        // Make header row
+        var row = $.tag("tr");
+        row.appendChild($.tag("th"));
+        for( var locale of columns.keys() ) {
+            var ele = $.ele("<th>"+locale+"</th>");
+            if (supportedLocales.has(locale)) {
+                ele.classList.add("warn");
+            }
+            row.appendChild(ele);
+        }
+        table.appendChild(row);
+
+        // Make table
+        for (var rowLocale of locales) {
+            var row = $.tag("tr");
+
+            var cell = $.ele("<th>"+rowLocale+"</th>");
+            if (!supportedLocales.has(rowLocale)) {
+                cell.classList.add("warn");
+            }
+            row.appendChild(cell);
+
+            for (var [colLocale, display] of columns) {
+                var displayName = display.of(rowLocale);
+                cell = $.tag("td");
+                cell.innerHTML = displayName === undefined ? "⛔" : "✔️"
+                cell.classList.add(displayName === undefined ? "error" : "good");
+                if (displayName !== undefined) {cell.setAttribute("title", displayName);}
+                row.appendChild(cell);
+            }
+            table.appendChild(row);
+        }
+
+    }
+
+    makeTable(allLocales, uiLocales);
+};
+
+</script>
+
+<body>
+
+<table id="locale-table"> </table>
+
+</body>
+
+</html>

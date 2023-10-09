@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="style.css">
+<script type="text/javascript" src="locales.js"></script>
+
+<script type="text/javascript">
+
+var displayLocales = ["ar", "en", "pa", "sw-KE", "ja"];
+var headerRow = ["", "Name", "Date", "Number", "Native", "English", "Supports", "Supported By"].concat(displayLocales).concat(["Date Long", "Date Short", "Number"]);
+var dateToShow = new Date();
+
+var getFormatters = function(displayLocale, languageFmt) {
+    var formatters = {
+        dateFull: new Intl.DateTimeFormat(displayLocale, {dateStyle:"full"}),
+        dateShort: new Intl.DateTimeFormat(displayLocale, {dateStyle:"short"}),
+        number: new Intl.NumberFormat(displayLocale),
+    }
+
+    return {
+        language: languageFmt.get(displayLocale),
+        dateFull: function(date) { return formatters["dateFull"].format(date) },
+        dateShort: function(date) { return formatters["dateShort"].format(date) },
+        number: function(n) { return formatters["number"].format(n) },
+    }
+}
+
+var makeListRow = function(rowLocale, languageFmt) {
+    var row = $.tag("tr")
+    var fmt = getFormatters(rowLocale, languageFmt)
+
+    var isSupported = {
+        name:  new Set(Intl.DisplayNames.supportedLocalesOf([rowLocale])).size == 1,
+        date:  new Set(Intl.DateTimeFormat.supportedLocalesOf([rowLocale])).size == 1,
+        number: new Set(Intl.NumberFormat.supportedLocalesOf([rowLocale])).size == 1
+    }
+
+
+    // locale code
+    var cell = $.ele("<td class='td-head'>"+rowLocale+"</td>");
+    if (!isSupported["name"]) {
+        cell.classList.add("warn");
+    }
+    row.appendChild(cell);
+
+    // DisplayName isSupported
+    cell = $.tag("td");
+    cell.innerHTML = isSupported["name"] ? "✔️" : "⛔"
+    row.appendChild(cell);
+
+    // DateTimeFormat isSupported
+    cell = $.tag("td");
+    cell.innerHTML = isSupported["date"] ? "✔️" : "⛔"
+    row.appendChild(cell);
+
+    // NumberFormat isSupported
+    cell = $.tag("td");
+    cell.innerHTML = isSupported["number"] ? "✔️" : "⛔"
+    row.appendChild(cell);
+
+    // Native name
+    cell = $.tag("td")
+    cell.innerHTML = fmt["language"](rowLocale);
+    if (cell.innerHTML === "undefined"){
+        cell.classList.add('warn');
+        cell.innerHTML = rowLocale;
+    }
+    row.appendChild(cell);
+
+    // English Name
+    cell = $.tag("td");
+    cell.innerHTML = languageFmt.get("en")(rowLocale);
+    if (cell.innerHTML == "undefined"){
+        cell.classList.add('warn');
+        cell.innerHTML = rowLocale;
+    }
+    row.appendChild(cell);
+
+    // Count of languages that can be displaed in this locale
+    cell = $.tag("td");
+    if (isSupported["name"]) {
+        cell.innerHTML = (new Array(...languageFmt.keys())).filter(function(i) { return fmt["language"](i) !== undefined}).length;
+    }
+    row.appendChild(cell);
+
+    // Count how many languages support |rowLocale| (Supported By)
+    cell = $.tag("td");
+    var supportedLocales =(new Array(...languageFmt.entries())).filter(function ([l, fmt]) {
+        return new Set(Intl.DisplayNames.supportedLocalesOf([l])).size == 1 &&
+                fmt(rowLocale) !== undefined;
+        });
+    cell.innerHTML = supportedLocales.length !== 0 ? supportedLocales.length : "";
+    row.appendChild(cell);
+
+
+    if (isSupported["name"]) {
+        for (locale of displayLocales) {
+            cell = $.tag("td");
+            cell.innerHTML = fmt["language"](locale);
+
+            if (cell.innerHTML === "undefined"){
+                cell.classList.add('warn');
+                // cell.innerHTML = rowLocale;
+            }
+            row.appendChild(cell);
+        }
+    } else {
+        row.append(...$.html("<td colspan='"+(displayLocales.length + 3)+"'></td>"));
+    }
+
+    if (isSupported["date"]) {
+        cell = $.tag("td")
+        cell.innerHTML = fmt["dateFull"](dateToShow)
+        row.appendChild(cell)
+
+        cell = $.tag("td")
+        cell.innerHTML = fmt["dateShort"](dateToShow);
+        row.appendChild(cell);
+
+    }
+
+    if (isSupported["number"]){
+        cell = $.tag("td");
+        cell.innerHTML = fmt["number"](1234567.89);
+        row.appendChild(cell);
+    }
+
+    return row
+}
+
+var makeList = function(locales) {
+    document.getElementById("totalLocales").innerHTML = locales.length;
+    document.getElementById("supportedLocales").innerHTML = Intl.DisplayNames.supportedLocalesOf(locales).length;
+
+    if (locales.indexOf("en") === -1) {locales.push("en")};
+
+    var languageFmt = new Map(locales.map(function(i) {
+        var fmt = new Intl.DisplayNames(i, {type:"language", languageDisplay: "standard", fallback:"none"});
+        return [i, function (l) {return fmt.of(l)}];
+    }));
+
+
+    var table = document.getElementById("locale-table");
+    // Make header row
+    var row = $.tag("tr");
+    for( var text of headerRow ) {
+        var ele = $.ele("<th>"+text+"</th>");
+        row.appendChild(ele);
+    }
+    table.appendChild(row);
+
+    // Make table
+    for (var rowLocale of locales) {
+        table.appendChild(makeListRow(rowLocale, languageFmt));
+    }
+}
+
+
+window.onload = function() {
+    makeList(allLocales);
+}
+
+</script>
+
+<body>
+
+<div id="summary">
+   There are <span id="totalLocales"></span> locales and <span id="supportedLocales"></span> are supported.
+</div>
+
+<table id="locale-table"> </table>
+
+</body>
+
+</html>
